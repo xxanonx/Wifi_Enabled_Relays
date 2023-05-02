@@ -1,0 +1,105 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wifi relay manual functions</title>
+    <script>
+		var Socket;
+		function init() {
+			Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+			Socket.onmessage = function(event){
+				console.log("Socket Event!");
+				var message = event.data;
+				console.log(message);
+				var includesOn = (message.indexOf("ON") != -1);
+				var includesOff = (message.indexOf("OFF") != -1);
+				var includesAuto = (message.indexOf("AUTO") != -1);
+				var includesMan = (message.indexOf("MAN") != -1);
+				var newText;
+				
+				if (includesOn){
+					console.log("includesOn");
+					newText = "On";
+				}else if (includesOff){
+					console.log("includesOff");
+					newText = "Off";
+				}
+				var Relay_state;
+				for (let i = 1; i <= 8; i++) {
+					if (message.indexOf(i) != -1){
+						Relay_state = i;
+						break;
+					}
+				}
+				if (message.indexOf("RS") != -1){
+					var man = 'RElAY_' + Relay_state + '_man';
+					var state = 'RElAY_' + Relay_state + '_state';
+					document.getElementById(state).innerHTML = newText;
+					if (includesAuto){
+						document.getElementById(man).innerHTML = "Auto";
+					}else if (includesMan){
+						document.getElementById(man).innerHTML = "Man";
+					}
+				}
+			}
+		}
+		function setAutoMode(relay){
+			console.log("Sending Manual Data!");
+			var man = 'RElAY_' + relay + '_man';
+			if (document.querySelector('#' + man).innerHTML == "Auto"){
+				document.getElementById(man).innerHTML = "Man";
+				sendManData(relay);
+			}
+			else if (document.querySelector('#' + man).innerHTML == "Man"){
+				document.getElementById(man).innerHTML = "Auto";
+				console.log("Switching to Automatic!");
+				var message = "Auto ";
+				message += "RT ";
+				message += relay;
+				message += ".";
+				console.log(message);
+				Socket.send(message);
+			}
+		}  
+		function sendManData(relay){
+			var man = 'RElAY_' + relay + '_man';
+			var state = 'RElAY_' + relay + '_state';
+			var newText;
+			if (document.querySelector('#' + state).innerHTML == "Off"){
+				newText = "On";
+			}
+			else if (document.querySelector('#' + state).innerHTML == "On"){
+				newText = "Off";
+			}
+			if (document.querySelector('#' + man).innerHTML == "Man"){
+				console.log("Sending Manual Data!");
+				var message = "Man ";
+				message += "RT ";
+				message += relay;
+				message += " "
+				message += newText;
+				message += ".";
+				console.log(message);
+				Socket.send(message);
+			}else{
+				console.log("Relay " + relay + "is not in manual");
+			}
+		}
+    </script>
+  </head>
+  <body onload="javascript:init()">
+    <style>body{ background-color: #537846; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }</style>
+    <a href="/"><button>HOME</button></a>
+    <h1>Manual Page</h1>
+  <br>Manual Relay States:
+  <br>Relay 1: &emsp;<button id="RElAY_1_man" onclick="setAutoMode('1')">Auto</button> &emsp;<button id="RElAY_1_state" onclick="sendManData('1')">Off</button>
+  <br>Relay 2: &emsp;<button id="RElAY_2_man" onclick="setAutoMode('2')">Auto</button> &emsp;<button id="RElAY_2_state" onclick="sendManData('2')">Off</button>
+  <br>Relay 3: &emsp;<button id="RElAY_3_man" onclick="setAutoMode('3')">Auto</button> &emsp;<button id="RElAY_3_state" onclick="sendManData('3')">Off</button>
+  <br>Relay 4: &emsp;<button id="RElAY_4_man" onclick="setAutoMode('4')">Auto</button> &emsp;<button id="RElAY_4_state" onclick="sendManData('4')">Off</button>
+  <br>Relay 5: &emsp;<button id="RElAY_5_man" onclick="setAutoMode('5')">Auto</button> &emsp;<button id="RElAY_5_state" onclick="sendManData('5')">Off</button>
+  <br>Relay 6: &emsp;<button id="RElAY_6_man" onclick="setAutoMode('6')">Auto</button> &emsp;<button id="RElAY_6_state" onclick="sendManData('6')">Off</button>
+  <br>Relay 7: &emsp;<button id="RElAY_7_man" onclick="setAutoMode('7')">Auto</button> &emsp;<button id="RElAY_7_state" onclick="sendManData('7')">Off</button>
+  <br>Relay 8: &emsp;<button id="RElAY_8_man" onclick="setAutoMode('8')">Auto</button> &emsp;<button id="RElAY_8_state" onclick="sendManData('8')">Off</button>
+  <br><br><br>
+  </div>
+  </body>
+</html>
