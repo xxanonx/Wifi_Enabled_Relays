@@ -5,19 +5,30 @@
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
-/*struct Time_based_output{
-  byte output_pin = 2;
-  bool change_made;
-  SpecialBool state;
-  int time_on;
-  int time_off;
-};*/
+byte last_website_served = 0;
+bool website_recently_served = false;
+bool website_ready = false;
+bool change_made = false;
+Timer website_timeout(2000, 1);
+
 struct Logic_based_output{
   byte output_pin;
-  bool change_made;
   SpecialBool state;
+  byte timed_out_type;
+  byte hour_on;
+  byte hour_off;
+  unsigned int change_made:1;
+  unsigned int automatic_state:1;
+  unsigned int reserve2:1;
+  unsigned int reserve3:1;
+  unsigned int reserve4:1;
+  unsigned int reserve5:1;
+  unsigned int reserve6:1;
+  unsigned int reserve7:1;
+  
 };
 int outputs[] = {2,4,5,12,13,14,15,16};
+int outputs_type[] = {1,2,3,1,1,3,3,2};
 Logic_based_output Relay1;
 Logic_based_output Relay2;
 Logic_based_output Relay3;
@@ -45,6 +56,7 @@ void setup() {
 
   server.on("/", show_page_home);
   server.on("/manual", show_page_manual);
+  server.on("/timing", show_page_timing);
   server.begin();
   
   webSocket.begin();
@@ -52,6 +64,9 @@ void setup() {
   
   for(int i = 0; i < 8; i++){
     AofRelays[i]->output_pin = outputs[i];
+    AofRelays[i]->timed_out_type = 1;
+    AofRelays[i]->hour_on = 0;
+    AofRelays[i]->hour_off = 0;
   }
   for(int i = 0; i < 8; i++){
     pinMode(AofRelays[i]->output_pin, OUTPUT);
@@ -75,8 +90,30 @@ void loop() {
   for(int i = 0; i < 8; i++){
     if (AofRelays[i]->change_made){ // f is the manual bit
       digitalWrite(AofRelays[i]->output_pin, (AofRelays[i]->state.actualNot()));
-      send_man_update();
+      change_made = true;
       AofRelays[i]->change_made = false;
     }
+  }
+  if (change_made and (last_website_served == 1)){
+    send_man_update();
+    change_made = false;
+  }
+  if (website_recently_served and website_ready){
+    Serial.println("sending update");
+    switch (last_website_served){
+      case 1:
+        send_man_update();
+      break;
+      case 2:
+        send_time_update();
+      break;
+    }
+    website_recently_served = false;
+    website_ready = false;
+  }
+  if (website_timeout.input((website_recently_served xor website_ready))){
+    Serial.println("something failed");
+    website_recently_served = false;
+    website_ready = false;
   }
 }

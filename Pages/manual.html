@@ -41,6 +41,10 @@
 					}
 				}
 			}
+			Socket.onopen = function(){
+				console.log("Ready");
+				Socket.send("Ready");
+			}
 		}
 		function setAutoMode(relay){
 			console.log("Sending Manual Data!");
@@ -85,6 +89,10 @@
 			}
 		}
     </script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+	<script>
+		
+	</script>
   </head>
   <body onload="javascript:init()">
     <style>body{ background-color: #537846; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }</style>

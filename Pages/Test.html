@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+		<script>
+			$(document).ready(function(){
+			var items={option1:{value:1,text:"Time of day based"},option2:{value:2,text:"Continuously based"},option3:{value:3,text:"Not time based"}}
+
+			//You may narrows the selector to an exact class e.g. $(".mySelect") instead of $("select")
+
+			$.each(items, function (i, item) {
+
+			  $('.TimeSelect').append($('<option>', { 
+				  value: item.value,
+				  text : item.text 
+			  }));
+			});
+
+			})
+		</script>
+	</head>
+	<body>
+		Selection 1:
+		<select name="select1" class="TimeSelect"></select>
+		<br><br>
+
+		Selection 2:
+		<select name="select2" class="TimeSelect"></select>
+		<br><br>
+	</body>
+</html>
