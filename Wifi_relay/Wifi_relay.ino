@@ -4,6 +4,7 @@
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
 #include <SpecialBool.h>
+#include <LittleFS.h>
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
@@ -75,26 +76,42 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   timeClient.begin();
+  timeClient.setTimeOffset(-14400);
+  timeClient.setUpdateInterval(3600000);
   
-  for(int i = 0; i < NUM_OF_RELAYS; i++){
-    AofRelays[i]->output_pin = outputs[i];
-    AofRelays[i]->timed_out_type = 1;
-    AofRelays[i]->hour_on = 0;
-    AofRelays[i]->hour_off = 0;
-  }
-  for(int i = 0; i < NUM_OF_RELAYS; i++){
-    pinMode(AofRelays[i]->output_pin, OUTPUT);
-    digitalWrite(AofRelays[i]->output_pin, LOW);
-    AofRelays[i]->state.write(true);
-  }
+	for(int i = 0; i < NUM_OF_RELAYS; i++){
+		AofRelays[i]->output_pin = outputs[i];
+		char file_location[12];
+    char relay_char[1] = {char(i)};
+    strcpy(file_location,"/relay");
+    strcat(file_location, relay_char);
+    strcat(file_location, ".txt");
+    File f = LittleFS.open(file_location, "\r");
+		if (!f) {
+		Serial.println("file open failed");
+		AofRelays[i]->timed_out_type = 1;
+		AofRelays[i]->hour_on = 0;
+		AofRelays[i]->hour_off = 0;
+		}
+		else{
+			f.read((byte *)&AofRelays[i], sizeof(Logic_based_output));
+		}
+		f.close();
+	}
+  
+	for(int i = 0; i < NUM_OF_RELAYS; i++){
+		pinMode(AofRelays[i]->output_pin, OUTPUT);
+		digitalWrite(AofRelays[i]->output_pin, LOW);
+		AofRelays[i]->state.write(true);
+	}
   
   delay(500);
-  for(int i = 0; i < NUM_OF_RELAYS; i++){
-    digitalWrite(AofRelays[i]->output_pin, HIGH);
-    AofRelays[i]->state.write(false);
-    AofRelays[i]->change_made = true;
-    delay(200);
-  }
+	for(int i = 0; i < NUM_OF_RELAYS; i++){
+		digitalWrite(AofRelays[i]->output_pin, HIGH);
+		AofRelays[i]->state.write(false);
+		AofRelays[i]->change_made = true;
+		delay(200);
+	}
 }
 
 void loop() {
@@ -107,8 +124,17 @@ void loop() {
     // This should cycle on the first cylcle and every minute after
     update_the_time_in = false;
     timeClient.update();
-    Serial.print("The time is: ");
+    Serial.print("The day is: ");
+    Serial.print(timeClient.getDay());
+    Serial.print(" and the time is: ");
     Serial.println(timeClient.getFormattedTime());
+    if ((timeClient.getSeconds() > 10) and (timeClient.getSeconds() < 50)){
+      update_the_time.time = (60000 + ((60 - timeClient.getSeconds()) * 1000));
+    }
+    else{
+      update_the_time.time = 60000;
+    }
+	  update_time_of_day_states();
   }
   else{
     update_the_time_in = true;
@@ -124,6 +150,9 @@ void loop() {
   }
   if (change_made and (last_website_served == 1)){
     send_man_update();
+    change_made = false;
+  }else if (change_made){
+    write_relay_data();
     change_made = false;
   }
   if (website_recently_served and website_ready){

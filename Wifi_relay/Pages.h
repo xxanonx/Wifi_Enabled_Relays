@@ -565,3 +565,30 @@ void update_time_of_day_states(){
     Serial.println("Time is not set properly, possibly no WIFI?");
   }
 }
+
+
+bool write_relay_data(){
+  bool ret = true;
+	for(int i = 0; i < NUM_OF_RELAYS; i++){
+    char file_location[12] = "           ";
+    char relay_char[] = {i + '0'};
+    Serial.println(relay_char);
+    strcpy(file_location,"/relay");
+    strcat(file_location, relay_char);
+    strcat(file_location, ".txt");
+		File f = LittleFS.open(file_location, "\w");
+		if (!f) {
+      Serial.print("file open failed while writing file for relay: ");
+      Serial.println(file_location);
+      ret = false;
+		}
+		else{
+			f.write((byte *)&AofRelays[i], sizeof(Logic_based_output));
+		}
+		f.close();
+	}
+  if (ret){
+    Serial.println("successfully saved all relay settings");  
+  }
+  return ret;
+}
