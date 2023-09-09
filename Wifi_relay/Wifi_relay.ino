@@ -78,23 +78,31 @@ void setup() {
   timeClient.begin();
   timeClient.setTimeOffset(-14400);
   timeClient.setUpdateInterval(3600000);
+
+  //LittleFS.format();
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed");
+    return;
+  }
   
 	for(int i = 0; i < NUM_OF_RELAYS; i++){
 		AofRelays[i]->output_pin = outputs[i];
 		char file_location[12];
-    char relay_char[1] = {char(i)};
+    char relay_char[] = {(char(i) + '0'), 0};
     strcpy(file_location,"/relay");
     strcat(file_location, relay_char);
     strcat(file_location, ".txt");
-    File f = LittleFS.open(file_location, "\r");
+    File f = LittleFS.open(file_location, "r");
 		if (!f) {
-		Serial.println("file open failed");
-		AofRelays[i]->timed_out_type = 1;
-		AofRelays[i]->hour_on = 0;
-		AofRelays[i]->hour_off = 0;
+  		Serial.println("file open failed");
+  		AofRelays[i]->timed_out_type = 1;
+  		AofRelays[i]->hour_on = 0;
+  		AofRelays[i]->hour_off = 0;
 		}
 		else{
-			f.read((byte *)&AofRelays[i], sizeof(Logic_based_output));
+      Logic_based_output temp_relay;
+			f.read((byte *)AofRelays[i], sizeof(temp_relay));
+      
 		}
 		f.close();
 	}

@@ -530,10 +530,10 @@ void update_time_of_day_states(){
       if (AofRelays[i]->timed_out_type == TIME_OF_DAY_BASED){
         if ((AofRelays[i]->hour_on == current_hour) and not (AofRelays[i]->automatic_state)){
           if (AofRelays[i]->hour_on == AofRelays[i]->hour_off){
-            if (AofRelays[i]->counter == 1){
+            if (AofRelays[i]->counter <= 1){
               continue;
             }
-            else{
+            else if (AofRelays[i]->counter == 5){
               AofRelays[i]->counter = 1;
             }
           }
@@ -542,15 +542,20 @@ void update_time_of_day_states(){
         }
         else if ((AofRelays[i]->hour_off == current_hour) and (AofRelays[i]->automatic_state)){
           if (AofRelays[i]->hour_on == AofRelays[i]->hour_off){
-            if (AofRelays[i]->counter == 0){
+            if (AofRelays[i]->counter <= 1){
               continue;
             }
-            else{
+            else if (AofRelays[i]->counter == 5){
               AofRelays[i]->counter = 0;
             }
           }
           AofRelays[i]->automatic_state = false;
           AofRelays[i]->change_made = true;
+        }
+        else if ((AofRelays[i]->hour_on == AofRelays[i]->hour_off) and (AofRelays[i]->counter <= 1)){
+          if (AofRelays[i]->hour_off != current_hour){
+            AofRelays[i]->counter = 5;
+          }
         }
       }
       else if (AofRelays[i]->timed_out_type == CONTINUOUSLY_TIME_BASED){
@@ -569,21 +574,23 @@ void update_time_of_day_states(){
 
 bool write_relay_data(){
   bool ret = true;
+  Logic_based_output temp_relay;
 	for(int i = 0; i < NUM_OF_RELAYS; i++){
     char file_location[12] = "           ";
-    char relay_char[] = {i + '0'};
+    char relay_char[] = {(char(i) + '0'), 0};
+    temp_relay = *AofRelays[i];
     Serial.println(relay_char);
     strcpy(file_location,"/relay");
     strcat(file_location, relay_char);
     strcat(file_location, ".txt");
-		File f = LittleFS.open(file_location, "\w");
+		File f = LittleFS.open(file_location, "w");
 		if (!f) {
       Serial.print("file open failed while writing file for relay: ");
       Serial.println(file_location);
       ret = false;
 		}
 		else{
-			f.write((byte *)&AofRelays[i], sizeof(Logic_based_output));
+			f.write((byte *)&temp_relay, sizeof(temp_relay));
 		}
 		f.close();
 	}
